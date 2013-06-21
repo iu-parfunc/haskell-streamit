@@ -1,0 +1,63 @@
+/*
+ * HelloWorld.str: a serial integer printer
+ * $Id: HelloWorld.str,v 1.1 2006-09-08 17:18:29 thies Exp $
+ */
+
+void->int filter IntSource {
+    int x;
+    init {
+        x = 0;
+    }
+    work push 1 {
+        push(x++);
+    }
+}
+
+int->int filter incr()
+{
+  work pop 1 push 1 {
+    push (pop() + 1);
+  }
+}
+
+// <BUG>
+// strc Loop.str --library -i 5
+//
+// java.lang.AssertionError
+// 	at streamit.library.Pipeline.connectGraph(Pipeline.java:392)
+// 	at streamit.library.Operator.setupOperator(Operator.java:1420)
+// 	at streamit.library.Pipeline.connectGraph(Pipeline.java:406)
+//   .....
+/*
+int->int pipeline Foo(int n) 
+{
+  if (n > 0) {
+    add incr();
+    add Foo(n-1);
+  }
+}
+*/
+
+// Yep, this formulation works in the C backend but NOT in --library
+int->int pipeline Loop(int n) 
+{
+  if (n > 0) {
+    add incr();
+    add Loop(n-1);
+  }
+}
+
+
+
+int->void filter IntPrinter {
+    work pop 1 peek 2 {
+        pop();
+        println(peek(0));
+    }
+}
+
+void->void pipeline Rep2 {
+    add IntSource();
+    add Loop(10);
+    add IntPrinter();
+}
